@@ -62,16 +62,21 @@ export function logoutUser(): void {
   localStorage.removeItem(ACTIVE_USER_KEY);
 }
 
-export function saveTicket(email: string, ticket: Ticket): void {
-  const allTickets: TicketMap = JSON.parse(localStorage.getItem(TICKETS_KEY) || '{}');
-  if (!allTickets[email]) {
-    allTickets[email] = [];
-  }
-  allTickets[email].push(ticket);
-  localStorage.setItem(TICKETS_KEY, JSON.stringify(allTickets));
-}
-
 export function getTickets(email: string): Ticket[] {
   const allTickets: TicketMap = JSON.parse(localStorage.getItem(TICKETS_KEY) || '{}');
   return allTickets[email] || [];
+}
+
+export function getTicketsByUser(email: string) {
+  const allTickets = JSON.parse(localStorage.getItem("tickets") || "{}");
+  return allTickets[email] || [];
+}
+
+// Yeni bilet kaydet
+export function saveTicket(email: string, ticket: any) {
+  const allTickets = JSON.parse(localStorage.getItem("tickets") || "{}");
+  const userTickets = allTickets[email] || [];
+  userTickets.push(ticket);
+  allTickets[email] = userTickets;
+  localStorage.setItem("tickets", JSON.stringify(allTickets));
 }

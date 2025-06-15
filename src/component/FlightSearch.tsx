@@ -46,7 +46,7 @@ export default function FlightSearch({ onTicketBought }: Props) {
   const handleBuy = () => {
     const user = getActiveUser();
     if (!user) {
-      router.push("/login");
+      router.push("/auth");
       return;
     }
 

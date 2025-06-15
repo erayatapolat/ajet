@@ -1,57 +1,56 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getActiveUser, getTicketsByUser } from "../../utils/storage";
 import Layout from "@/component/ui/layout";
 
-export default function Ticket() {
-  const userName = "Doğukan Solak";
+interface Ticket {
+  from: string;
+  to: string;
+  departureDate: string;
+  returnDate?: string;
+  price: number;
+}
 
-  const tickets = [
-    {
-      id: 1,
-      from: "İstanbul",
-      to: "Berlin",
-      date: "2025-06-20",
-      price: "1200₺",
-      purchaseDate: "2025-06-10 15:30",
-      flightTime: "2025-06-20 09:00"
-    },
-  ];
+export default function MyTicketsPage() {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+
+  useEffect(() => {
+    const user = getActiveUser();
+    if (user) {
+      const userTickets = getTicketsByUser(user.email);
+      setTickets(userTickets);
+    }
+  }, []);
 
   return (
-    <div className="min-h-screen rounded-3xl bg-gradient-to-b from-[#0090FF] to-[#002B5B] text-white py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4">Merhaba, {userName} 👋</h1>
-        <h2 className="text-2xl font-semibold mb-8">Biletlerin</h2>
-
+    <Layout>
+      <div className="max-w-7xl mx-auto mt-10 p-6 bg-white rounded shadow">
+        <h1 className="text-2xl font-semibold mb-6">Biletlerim</h1>
         {tickets.length === 0 ? (
-          <p className="text-gray-200">Henüz biletin yok.</p>
+          <p>Hiç biletiniz yok.</p>
         ) : (
-          <div className="space-y-6">
-            {tickets.map((ticket) => (
+          <div className="grid gap-4">
+            {tickets.map((ticket, idx) => (
               <div
-                key={ticket.id}
-                className="bg-white/90 text-gray-800 rounded-2xl shadow-lg p-6 hover:scale-[1.01] transition"
+                key={idx}
+                className="border border-gray-300 p-4 rounded-md flex flex-col md:flex-row justify-between items-start md:items-center"
               >
-                <div className="flex justify-between items-center mb-3">
-                  <div className="text-xl font-semibold">
-                    ✈️ {ticket.from} → {ticket.to}
-                  </div>
-                  <div className="text-sm text-gray-500">{ticket.date}</div>
+                <div>
+                  <p className="font-medium">{ticket.from} ➝ {ticket.to}</p>
+                  <p className="text-sm text-gray-600">
+                    Gidiş: {ticket.departureDate}
+                    {ticket.returnDate && ` | Dönüş: ${ticket.returnDate}`}
+                  </p>
                 </div>
-
-                <div className="text-sm text-gray-600 mb-1">
-                  Satın Alınma Tarihi: <span className="font-medium">{ticket.purchaseDate}</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-3">
-                  Uçuş Zamanı: <span className="font-medium">{ticket.flightTime}</span>
-                </div>
-
-                <div className="text-right text-lg font-bold text-[#002B5B]">
-                  {ticket.price}
+                <div className="text-blue-600 font-semibold text-lg mt-2 md:mt-0">
+                  {ticket.price}€
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   );
 }

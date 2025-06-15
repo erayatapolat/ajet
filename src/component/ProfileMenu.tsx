@@ -1,11 +1,12 @@
 "use client";
+import { getActiveUser } from "@/utils/storage";
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 
-type Props = {
-    onLogout: () => void;
-};
 
-export default function ProfileMenu({ onLogout }: Props) {
+export default function ProfileMenu() {
+    const route = useRouter();
+    const user = getActiveUser();
     const [open, setOpen] = useState(false);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -17,7 +18,6 @@ export default function ProfileMenu({ onLogout }: Props) {
     const handleMouseLeave = () => {
         timeoutRef.current = setTimeout(() => setOpen(false), 150);
     };
-
     return (
         <div
             className="relative"
@@ -25,18 +25,17 @@ export default function ProfileMenu({ onLogout }: Props) {
             onMouseLeave={handleMouseLeave}
         >
             <button className="bg-white text-[#0090FF] rounded-full px-6 py-1 text-sm font-medium">
-                Profile
+                {user?.name}
             </button>
 
             {open && (
                 <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg z-50 py-2 text-sm text-black">
                     <ul className="flex flex-col">
-                        <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                            Settings
+                        <li onClick={()=>(route.push('/ticket'))} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                            Tickets
                         </li>
                         <li
                             className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-500"
-                            onClick={onLogout}
                         >
                             Log out
                         </li>

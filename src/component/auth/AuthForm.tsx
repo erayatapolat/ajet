@@ -180,7 +180,10 @@ export default function AuthForm() {
         return;
       }
       saveUser(formData as any);
-      //setActiveUser(formData);
+      setActiveUser({
+        ...formData,
+        name: formData.name ?? "",
+      })
       router.push("/");
     }
   };

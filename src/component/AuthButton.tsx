@@ -2,13 +2,14 @@
 import { useState } from "react";
 import ProfileMenu from "./ProfileMenu";
 import { useRouter } from "next/navigation";
+import { getActiveUser } from "@/utils/storage";
 
 export default function AuthButton() {
     const route = useRouter();
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // örnek olarak
+    const user = getActiveUser();
 
-    return isLoggedIn ? (
-        <ProfileMenu onLogout={() => setIsLoggedIn(false)} />
+    return user ? (
+        <ProfileMenu />
     ) : (
         <button
             onClick={()=>(route.push('/auth'))}
