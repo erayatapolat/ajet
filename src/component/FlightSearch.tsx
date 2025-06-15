@@ -9,6 +9,10 @@ interface Props {
   onTicketBought?: () => void;
 }
 
+function getDayPrice(): number {
+  return Math.floor(Math.random() * 50) + 50; // 50–99 €
+}
+
 export default function FlightSearch({ onTicketBought }: Props) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
