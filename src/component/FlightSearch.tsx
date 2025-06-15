@@ -1,182 +1,162 @@
-"use client"
-// components/FlightSearch.tsx
+"use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getActiveUser, saveTicket } from "../utils/storage";
 import { airports } from "../data/airports";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
-interface Props {
-  onTicketBought?: () => void;
-}
+interface Props { onTicketBought?: () => void; }
 
-function getDayPrice(): number {
-  return Math.floor(Math.random() * 50) + 50; // 50–99 €
-}
+const getDayPrice = (day: Date): number => 40 + (day.getDate() % 20);
 
 export default function FlightSearch({ onTicketBought }: Props) {
+  const router = useRouter();
+
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [departureDate, setDepartureDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
-
-  const [filteredFrom, setFilteredFrom] = useState<typeof airports>([]);
-  const [filteredTo, setFilteredTo] = useState<typeof airports>([]);
-  const [showFromList, setShowFromList] = useState(false);
-  const [showToList, setShowToList] = useState(false);
+  const [depDate, setDepDate] = useState<Date>();
+  const [retDate, setRetDate] = useState<Date>();
+  const [showDep, setShowDep] = useState(false);
+  const [showRet, setShowRet] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const fromRef = useRef<HTMLDivElement>(null);
   const toRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const depRef = useRef<HTMLDivElement>(null);
+  const retRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!fromRef.current?.contains(e.target as Node)) setShowFromList(false);
-      if (!toRef.current?.contains(e.target as Node)) setShowToList(false);
+    const close = (e: MouseEvent) => {
+      if (!depRef.current?.contains(e.target as Node)) setShowDep(false);
+      if (!retRef.current?.contains(e.target as Node)) setShowRet(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  const filterAirports = (value: string) =>
-    airports.filter(
-      a =>
-        a.name.toLowerCase().includes(value.toLowerCase()) ||
-        a.city.toLowerCase().includes(value.toLowerCase()) ||
-        a.code.toLowerCase().includes(value.toLowerCase())
-    );
+  // havalimanı otokompleti
+  const filterAirports = (val: string) =>
+    airports.filter(a => a.name.toLowerCase().includes(val.toLowerCase()) ||
+      a.city.toLowerCase().includes(val.toLowerCase()) ||
+      a.code.toLowerCase().includes(val.toLowerCase()));
 
-  const getDayPrice = () => Math.floor(Math.random() * 100) + 50;
-
+  // Bilet al işlemi
   const handleBuy = () => {
     const user = getActiveUser();
-    if (!user) {
-      router.push("/auth");
-      return;
-    }
+    if (!user) return router.push("/auth");
+    if (!from || !to || !depDate) return;
 
-    if (!from || !to || !departureDate) return;
+    saveTicket(user.email, {
+      from, to,
+      departureDate: depDate.toISOString().split("T")[0],
+      returnDate: retDate?.toISOString().split("T")[0],
+      price: getDayPrice(depDate),
+    });
 
-    const ticket = {
-      from,
-      to,
-      departureDate,
-      returnDate: returnDate || undefined,
-      price: getDayPrice(),
-    };
-
-    saveTicket(user.email, ticket);
+    setShowToast(true);
     onTicketBought?.();
+    setTimeout(() => setShowToast(false), 2500);
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-w-7xl mx-auto mt-6 mb-6">
+    <div className="relative bg-white p-6 rounded-lg shadow max-w-3xl mx-auto mt-8 mb-8">
       <h2 className="text-2xl font-semibold mb-4 text-center">Uçuş Ara</h2>
-
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Nereden */}
-        <div ref={fromRef} className="relative">
-          <label className="block text-sm font-medium mb-1">Nereden</label>
-          <input
-            value={from}
-            onChange={e => {
-              setFrom(e.target.value);
-              setFilteredFrom(filterAirports(e.target.value));
-              setShowFromList(true);
-            }}
-            onFocus={() => setShowFromList(true)}
-            className="w-full border px-3 py-2 rounded"
-            placeholder="Şehir, havalimanı adı ya da kodu"
-          />
-          {showFromList && filteredFrom.length > 0 && (
-            <ul className="absolute z-10 bg-white border w-full max-h-40 overflow-auto shadow-md mt-1 rounded">
-              {filteredFrom.map((a, i) => (
-                <li
-                  key={i}
-                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setFrom(`${a.city} - ${a.name} (${a.code})`);
-                    setShowFromList(false);
-                  }}
-                >
-                  {a.city} - {a.name} ({a.code})
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="relative" ref={fromRef}>
+          <label className="block text-sm">Nereden</label>
+          <input value={from} onChange={e => setFrom(e.target.value)}
+            className="w-full border px-3 py-2 rounded" placeholder="Şehir / Havalimanı" />
         </div>
-
         {/* Nereye */}
-        <div ref={toRef} className="relative">
-          <label className="block text-sm font-medium mb-1">Nereye</label>
-          <input
-            value={to}
-            onChange={e => {
-              setTo(e.target.value);
-              setFilteredTo(filterAirports(e.target.value));
-              setShowToList(true);
-            }}
-            onFocus={() => setShowToList(true)}
-            className="w-full border px-3 py-2 rounded"
-            placeholder="Şehir, havalimanı adı ya da kodu"
-          />
-          {showToList && filteredTo.length > 0 && (
-            <ul className="absolute z-10 bg-white border w-full max-h-40 overflow-auto shadow-md mt-1 rounded">
-              {filteredTo.map((a, i) => (
-                <li
-                  key={i}
-                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setTo(`${a.city} - ${a.name} (${a.code})`);
-                    setShowToList(false);
-                  }}
-                >
-                  {a.city} - {a.name} ({a.code})
-                </li>
-              ))}
-            </ul>
+        <div className="relative" ref={toRef}>
+          <label className="block text-sm">Nereye</label>
+          <input value={to} onChange={e => setTo(e.target.value)}
+            className="w-full border px-3 py-2 rounded" placeholder="Şehir / Havalimanı" />
+        </div>
+        {/* Gidiş */}
+        <div className="relative" ref={depRef}>
+          <label className="block text-sm">Gidiş Tarihi</label>
+          <input readOnly value={depDate ? depDate.toLocaleDateString("tr-TR") : ""}
+            onClick={() => setShowDep(true)}
+            className="w-full border px-3 py-2 rounded cursor-pointer" />
+          {showDep && (
+            <DayPicker
+              mode="single"
+              selected={depDate}
+              onSelect={d => { setDepDate(d!), setShowDep(false) }}
+              fromDate={new Date()}
+              toDate={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
+              showOutsideDays
+              components={{
+                Day: ({ date, ...props }) => {
+                  const isSelected =
+                    (depDate && date.toDateString() === depDate.toDateString()) ||
+                    (retDate && date.toDateString() === retDate.toDateString());
+
+                  const price = getDayPrice(date);
+                  return (
+                    <div
+                      {...props}
+                      className={`flex flex-col items-center justify-center text-xs w-full h-full py-1 ${isSelected ? "bg-blue-600 text-white rounded" : ""
+                        }`}
+                    >
+                      <span>{date.getDate()}</span>
+                      <span className="text-blue-500 text-[10px]">{price} €</span>
+                    </div>
+                  );
+                }
+              }}
+            />
           )}
         </div>
+        {/* Dönüş */}
+        <div className="relative" ref={retRef}>
+          <label className="block text-sm">Dönüş Tarihi</label>
+          <input readOnly value={retDate ? retDate.toLocaleDateString("tr-TR") : ""}
+            onClick={() => setShowRet(true)}
+            disabled={!depDate}
+            className="w-full border px-3 py-2 rounded cursor-pointer disabled:opacity-50" />
+          {showRet && (
+            <DayPicker
+              mode="single"
+              selected={retDate}
+              onSelect={d => { setRetDate(d!), setShowRet(false) }}
+              fromDate={depDate ? new Date(depDate.getTime() + 864e5) : new Date()}
+              toDate={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
+              showOutsideDays
+              components={{
+                Day: ({ date, ...props }) => {
+                  const isSelected =
+                    (depDate && date.toDateString() === depDate.toDateString()) ||
+                    (retDate && date.toDateString() === retDate.toDateString());
 
-        {/* Gidiş tarihi */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Gidiş Tarihi</label>
-          <input
-            type="date"
-            min={new Date().toISOString().split("T")[0]}
-            max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-              .toISOString()
-              .split("T")[0]}
-            value={departureDate}
-            onChange={e => setDepartureDate(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
-
-        {/* Dönüş tarihi */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Dönüş Tarihi</label>
-          <input
-            type="date"
-            min={departureDate || new Date().toISOString().split("T")[0]}
-            max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-              .toISOString()
-              .split("T")[0]}
-            value={returnDate}
-            onChange={e => setReturnDate(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
+                  const price = getDayPrice(date);
+                  return (
+                    <div
+                      {...props}
+                      className={`flex flex-col items-center justify-center text-xs w-full h-full py-1 ${isSelected ? "bg-blue-600 text-white rounded" : ""
+                        }`}
+                    >
+                      <span>{date.getDate()}</span>
+                      <span className="text-blue-500 text-[10px]">{price} €</span>
+                    </div>
+                  );
+                }
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Bilet Al */}
       <div className="mt-6 text-center">
-        <button
-          onClick={handleBuy}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-        >
-          Bilet Al
-        </button>
+        <button onClick={handleBuy} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Bilet Al</button>
       </div>
+
+      {showToast && (
+        <div className="absolute top-3 right-3 bg-green-500 text-white px-4 py-2 rounded shadow-lg">Bilet başarıyla eklendi!</div>
+      )}
     </div>
   );
 }
